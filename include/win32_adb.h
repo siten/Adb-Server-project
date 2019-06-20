@@ -8,7 +8,7 @@
 
 #define __inline__    _inline
 
-#define snprintf      _snprintf
+//#define snprintf      _snprintf
 
 #define PATH_MAX       MAX_PATH
 

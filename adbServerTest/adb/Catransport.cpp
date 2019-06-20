@@ -36,7 +36,7 @@ Catransport::Catransport(usb_handle *h, const char *_serial, const char *_devpat
 Catransport::~Catransport()	//析构 释放所有资源 并从 usb_handle 队列中剔除
 {
 	//释放资源
-	D("transport: %s removing and free'ing %d\n", serial, transport_socket);
+	D("transport: %s removing and free'ing %d\n", (char *)serial, transport_socket);
 	/* IMPORTANT: the remove closes one half of the
 	** socket pair.  The close closes the other half.
 	*/
@@ -930,7 +930,7 @@ bool Catransport::Start()	//启动服务通讯
 			return false;
 		}
 
-		D("transport: %s (%d,%d) starting\n", serial, fd, sfd);
+		D("transport: %s (%d,%d) starting\n", (char *)serial, fd, sfd);
 
 		int evID = pair->a_fd;
 		transport_socket = evID;

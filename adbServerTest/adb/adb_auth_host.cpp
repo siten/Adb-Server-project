@@ -18,21 +18,21 @@
 #include <io.h>
 
 #ifdef _WIN32
-#  define WIN32_LEAN_AND_MEAN
-#  include "windows.h"
-#  include "shlobj.h"
+#define WIN32_LEAN_AND_MEAN
+#include "windows.h"
+#include "shlobj.h"
 #else
-#  include <sys/types.h>
-#  include <sys/stat.h>
-#  include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #endif
 #include <string.h>
 #include <limits.h>
 #include "adb_func.h"
 #include <win32_adb.h>
 
-/* HACK: we need the RSAPublicKey struct
- * but RSA_verify conflits with openssl */
+ /* HACK: we need the RSAPublicKey struct
+  * but RSA_verify conflits with openssl */
 #define RSA_verify RSA_verify_mincrypt
 #include "mincrypt/rsa.h"
 #undef RSA_verify
@@ -45,6 +45,8 @@
 #include <openssl/rsa.h>
 #include <openssl/sha.h>
 #include <sys/stat.h>
+
+#pragma comment(lib, "Shell32.lib")
 
 #define TRACE_TAG TRACE_AUTH
 
@@ -61,47 +63,47 @@ static struct listnode key_list;
 
 void *load_file(const char *fn, unsigned *_sz)
 {
-	HANDLE    file;
-	char     *data;
-	DWORD     file_size;
+    HANDLE    file;
+    char     *data;
+    DWORD     file_size;
 
-	file = CreateFileA(fn,
-		GENERIC_READ,
-		FILE_SHARE_READ,
-		NULL,
-		OPEN_EXISTING,
-		0,
-		NULL);
+    file = CreateFileA(fn,
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING,
+        0,
+        NULL);
 
-	if (file == INVALID_HANDLE_VALUE)
-		return NULL;
+    if (file == INVALID_HANDLE_VALUE)
+        return NULL;
 
-	file_size = GetFileSize(file, NULL);
-	data = NULL;
+    file_size = GetFileSize(file, NULL);
+    data = NULL;
 
-	if (file_size > 0) {
-		data = (char*)malloc(file_size + 1);
-		if (data == NULL) {
-			D("load_file: could not allocate %ld bytes\n", file_size);
-			file_size = 0;
-		}
-		else {
-			DWORD  out_bytes;
+    if (file_size > 0) {
+        data = (char*)malloc(file_size + 1);
+        if (data == NULL) {
+            D("load_file: could not allocate %ld bytes\n", file_size);
+            file_size = 0;
+        }
+        else {
+            DWORD  out_bytes;
 
-			if (!ReadFile(file, data, file_size, &out_bytes, NULL) ||
-				out_bytes != file_size)
-			{
-				D("load_file: could not read %ld bytes from '%s'\n", file_size, fn);
-				free(data);
-				data = NULL;
-				file_size = 0;
-			}
-		}
-	}
-	CloseHandle(file);
+            if (!ReadFile(file, data, file_size, &out_bytes, NULL) ||
+                out_bytes != file_size)
+            {
+                D("load_file: could not read %ld bytes from '%s'\n", file_size, fn);
+                free(data);
+                data = NULL;
+                file_size = 0;
+            }
+        }
+    }
+    CloseHandle(file);
 
-	*_sz = (unsigned)file_size;
-	return  data;
+    *_sz = (unsigned)file_size;
+    return  data;
 }
 
 
@@ -125,7 +127,11 @@ static int RSA_to_RSAPublicKey(RSA *rsa, RSAPublicKey *pkey)
     }
 
     BN_set_bit(r32, 32);
-    BN_copy(n, rsa->n);
+    //BN_copy(n, rsa->n);
+    const BIGNUM *ptmpn = nullptr;
+    const BIGNUM *ptmpe = nullptr;
+    RSA_get0_key(rsa, &ptmpn, &ptmpe, nullptr);
+    BN_copy(n, ptmpn);
     BN_set_bit(r, RSANUMWORDS * 32);
     BN_mod_sqr(rr, r, n, ctx);
     BN_div(NULL, rem, n, r32, ctx);
@@ -139,7 +145,8 @@ static int RSA_to_RSAPublicKey(RSA *rsa, RSAPublicKey *pkey)
         BN_div(n, rem, n, r32, ctx);
         pkey->n[i] = BN_get_word(rem);
     }
-    pkey->exponent = BN_get_word(rsa->e);
+    //pkey->exponent = BN_get_word(rsa->e);
+    pkey->exponent = BN_get_word(ptmpe);
 
 out:
     BN_free(n0inv);
@@ -222,7 +229,7 @@ static int generate_key(const char *file)
     EVP_PKEY* pkey = EVP_PKEY_new();
     BIGNUM* exponent = BN_new();
     RSA* rsa = RSA_new();
-	_mode_t old_mask;
+    _mode_t old_mask;
     FILE *f = NULL;
     int ret = 0;
 
@@ -326,7 +333,7 @@ static int get_user_keyfilepath(char *filename, size_t len)
     D("home '%s'\n", home);
 
     if (snprintf(android_dir, sizeof(android_dir), format, home,
-                        ANDROID_PATH) >= (int)sizeof(android_dir))
+        ANDROID_PATH) >= (int)sizeof(android_dir))
         return -1;
 
     if (stat(android_dir, &buf)) {

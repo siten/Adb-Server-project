@@ -4,7 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <zlib.h>
-#define DEF_MEM_LEVEL 8                // normally in zutil.h?
+#include <zutil.h>
+
 
 zipfile_t
 init_zipfile(const void* data, size_t size)

@@ -468,7 +468,7 @@ void *output_thread(void *_t)
 		_online = 1;
 		fd = t->fd;
 		D("%s: starting transport output thread on fd %d, SYNC online (%d)\n",
-			t->serial, t->fd, t->sync_token + 1);
+            (char *)t->serial, t->fd, t->sync_token + 1);
 
 		p = t->get_apacket();
 		p->msg.command = A_SYNC;
@@ -477,10 +477,10 @@ void *output_thread(void *_t)
 		p->msg.magic = A_SYNC ^ 0xffffffff;
 		if (t->write_packet(fd, p)) {
 			t->put_apacket(p);
-			D("%s: failed to write SYNC packet\n", t->serial);
+			D("%s: failed to write SYNC packet\n", (char *)t->serial);
 			goto oops;
 		}
-		D("%s: data pump started\n", t->serial);
+		D("%s: data pump started\n", (char *)t->serial);
 	}
 
 	while (_online) {
@@ -490,19 +490,19 @@ void *output_thread(void *_t)
 			print_packet("read_from_remote():", p);
 			if (t->write_packet(fd, p)){
 				t->put_apacket(p);
-				D("%s: failed to write apacket to transport\n", t->serial);
+				D("%s: failed to write apacket to transport\n", (char *)t->serial);
 				goto oops;
 			}
 		}
 		else {
-			D("%s: remote read failed for transport\n", t->serial);
+			D("%s: remote read failed for transport\n", (char *)t->serial);
 			t->put_apacket(p);
 			break;
 		}
 	}
 
 	if (t){
-		D("%s: SYNC offline for transport\n", t->serial);
+		D("%s: SYNC offline for transport\n", (char *)t->serial);
 		p = t->get_apacket();
 		p->msg.command = A_SYNC;
 		p->msg.arg0 = 0;
@@ -510,13 +510,13 @@ void *output_thread(void *_t)
 		p->msg.magic = A_SYNC ^ 0xffffffff;
 		if (t->write_packet(fd, p)) {
 			t->put_apacket(p);
-			D("%s: failed to write SYNC apacket to transport", t->serial);
+			D("%s: failed to write SYNC apacket to transport", (char *)t->serial);
 		}
 	}
 
 oops:
 	if (t){
-		D("%s: transport output thread is exiting\n", t->serial);
+		D("%s: transport output thread is exiting\n", (char *)t->serial);
 		t->Clear();
 		--(t->ref_count);
 		t.reset();
@@ -538,31 +538,31 @@ void *input_thread(void *_t)
 		_online = 1;
 		fd = t->fd;
 		D("%s: starting transport input thread, reading from fd %d\n",
-			t->serial, fd);
+            (char *)t->serial, fd);
 	}
 
 	while (_online){
 		if (t->read_packet(fd, p)) {
 			D("%s: failed to read apacket from transport on fd %d\n",
-				t->serial, t->fd);
+                (char *)t->serial, t->fd);
 			break;
 		}
 		if (!p){ continue; }
 		
 		if (p->msg.command == A_SYNC){
 			if (p->msg.arg0 == 0) {
-				D("%s: transport SYNC offline\n", t->serial);
+				D("%s: transport SYNC offline\n", (char *)t->serial);
 				t->put_apacket(p);
 				break;
 			}
 			else {
 				if (p->msg.arg1 == t->sync_token) {
-					D("%s: transport SYNC online\n", t->serial);
+					D("%s: transport SYNC online\n", (char *)t->serial);
 					active = 1;
 				}
 				else {
 					D("%s: transport ignoring SYNC %d != %d\n",
-						t->serial, p->msg.arg1, t->sync_token);
+                        (char *)t->serial, p->msg.arg1, t->sync_token);
 				}
 			}
 		}
@@ -572,14 +572,14 @@ void *input_thread(void *_t)
 				t->write_to_remote(p);
 			}
 			else {
-				D("%s: transport ignoring packet while offline\n", t->serial);
+				D("%s: transport ignoring packet while offline\n", (char *)t->serial);
 			}
 		}
 		t->put_apacket(p);
 	}
 
 	if (t){
-		D("%s: transport input thread is exiting, fd %d\n", t->serial, t->fd);
+		D("%s: transport input thread is exiting, fd %d\n", (char *)t->serial, t->fd);
 		t->Clear();
 		--(t->ref_count);
 		t.reset();
@@ -604,13 +604,13 @@ void *user_thread(void *_t)	///用户输入接收
 	{
 		p = NULL;
 		if (t->read_packet(tfd, p)){
-			D("%s: failed to read packet from transport socket on fd \n", t->serial);
+			D("%s: failed to read packet from transport socket on fd \n", (char *)t->serial);
 			break;
 		}
 		else if (!p){
 			//空包
 		}else {
-			D("%s: read packet from transport socket on addr : %d\n", t->serial, (int)p);
+			D("%s: read packet from transport socket on addr : %d\n", (char *)t->serial, (int)p);
 			t->handle_packet(p);
 		}
 		if (t->kicked){
@@ -619,7 +619,7 @@ void *user_thread(void *_t)	///用户输入接收
 	}
 
 	if (t){
-		D("%s: transport user thread is exiting, fd %d\n", t->serial, t->fd);
+		D("%s: transport user thread is exiting, fd %d\n", (char *)t->serial, t->fd);
 		t->Clear();
 		--(t->ref_count);
 		t.reset();
